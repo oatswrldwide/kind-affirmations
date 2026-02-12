@@ -65,9 +65,9 @@ app.post('/api/generate-affirmation', async (req, res) => {
       });
     }
 
-    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-    if (!OPENROUTER_API_KEY) {
-      console.error('[Config] OPENROUTER_API_KEY is not configured');
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    if (!GEMINI_API_KEY) {
+      console.error('[Config] GEMINI_API_KEY is not configured');
       return res.status(500).json({ 
         error: 'Service configuration error. Please contact support.',
         code: 'CONFIG_ERROR'
@@ -76,32 +76,32 @@ app.post('/api/generate-affirmation', async (req, res) => {
 
     console.log('[Request] Starting affirmation generation, message length:', trimmedMessage.length);
 
-    // Call OpenRouter API with timeout
+    // Combine system prompt and user message for Gemini
+    const combinedPrompt = `${SYSTEM_PROMPT}\n\nUser's feelings: ${trimmedMessage}\n\nYour affirmation:`;
+
+    // Call Gemini API with timeout
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     let response;
     try {
-      console.log('[OpenRouter] Calling API...');
-      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      console.log('[Gemini] Calling API...');
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`;
+      
+      response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://kind-affirmations.app',
-          'X-Title': 'Kind Affirmations',
         },
         body: JSON.stringify({
-          model: 'meta-llama/llama-3.2-3b-instruct:free', // Free tier model
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: trimmedMessage },
-          ],
-          stream: true,
-          // Optimize for free tier - minimal token usage
-          max_tokens: 150, // Limit response length
-          temperature: 0.7, // Balanced creativity
-          top_p: 0.9,
+          contents: [{
+            parts: [{ text: combinedPrompt }]
+          }],
+          generationConfig: {
+            maxOutputTokens: 150,
+            temperature: 0.7,
+            topP: 0.9,
+          }
         }),
         signal: controller.signal,
       });
@@ -110,18 +110,20 @@ app.post('/api/generate-affirmation', async (req, res) => {
       
       // Handle timeout
       if (fetchError.name === 'AbortError') {
-        console.error('[OpenRouter] Request timeout after 30s');
+        console.error('[Gemini] Request timeout after 30s');
         return res.status(504).json({ 
           error: 'Request timed out. Please try again.',
           code: 'TIMEOUT'
         });
       }
-      console.error('[OpenRouter] Network error:', fetchError.message);
+      console.error('[Gemini] Network error:', fetchError.message);
       return res.status(502).json({ 
         error: 'Unable to connect to AI service. Please try again.',
         code: 'NETWORK_ERROR'
       });
     }
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       let errorText;
@@ -131,15 +133,15 @@ app.post('/api/generate-affirmation', async (req, res) => {
         errorText = 'Unable to read error response';
       }
       
-      console.error('[OpenRouter] API error:', {
+      console.error('[Gemini] API error:', {
         status: response.status,
         statusText: response.statusText,
         error: errorText
       });
       
       // Handle specific error codes
-      if (response.status === 401) {
-        console.error('[OpenRouter] Invalid API key');
+      if (response.status === 401 || response.status === 403) {
+        console.error('[Gemini] Invalid API key');
         return res.status(502).json({ 
           error: 'Service authentication failed. Please contact support.',
           code: 'AUTH_ERROR'
@@ -147,23 +149,15 @@ app.post('/api/generate-affirmation', async (req, res) => {
       }
       
       if (response.status === 429) {
-        console.warn('[OpenRouter] Rate limited');
+        console.warn('[Gemini] Rate limited');
         return res.status(429).json({ 
           error: 'Too many requests. Please wait a moment and try again.',
           code: 'RATE_LIMITED'
         });
       }
       
-      if (response.status === 402) {
-        console.error('[OpenRouter] Payment required');
-        return res.status(502).json({ 
-          error: 'Service temporarily unavailable. Please try again later.',
-          code: 'SERVICE_UNAVAILABLE'
-        });
-      }
-      
       if (response.status >= 500) {
-        console.error('[OpenRouter] Server error');
+        console.error('[Gemini] Server error');
         return res.status(502).json({ 
           error: 'AI service is experiencing issues. Please try again in a moment.',
           code: 'UPSTREAM_ERROR'
@@ -184,11 +178,12 @@ app.post('/api/generate-affirmation', async (req, res) => {
     console.log('[Stream] Starting to stream response');
     let chunkCount = 0;
 
-    // Stream the response
+    // Stream the response - Gemini format
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
     try {
+      let buffer = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
@@ -196,10 +191,34 @@ app.post('/api/generate-affirmation', async (req, res) => {
           break;
         }
         
-        const chunk = decoder.decode(value, { stream: true });
-        res.write(chunk);
-        chunkCount++;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          
+          try {
+            const jsonLine = line.replace(/^data: /, '').trim();
+            if (!jsonLine || jsonLine === '[DONE]') continue;
+            
+            const parsed = JSON.parse(jsonLine);
+            
+            // Extract text from Gemini response format
+            if (parsed.candidates && parsed.candidates[0]?.content?.parts) {
+              const text = parsed.candidates[0].content.parts[0]?.text || '';
+              if (text) {
+                // Format as OpenAI-style SSE for frontend compatibility
+                res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                chunkCount++;
+              }
+            }
+          } catch (parseError) {
+            console.warn('[Stream] Failed to parse chunk:', parseError.message);
+          }
+        }
       }
+      res.write('data: [DONE]\n\n');
       res.end();
     } catch (streamError) {
       console.error('[Stream] Error during streaming:', streamError.message);
