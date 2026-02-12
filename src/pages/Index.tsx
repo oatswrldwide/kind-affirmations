@@ -174,17 +174,6 @@ const Index = () => {
                     ) : null}
                   </>
                 )}
-
-                {!isLoading && affirmation && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="mt-5 text-sm text-muted-foreground font-body"
-                  >
-                    — crafted for: "{input.slice(0, 60)}{input.length > 60 ? "…" : ""}"
-                  </motion.p>
-                )}
               </div>
 
               <button
