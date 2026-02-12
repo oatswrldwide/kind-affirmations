@@ -22,8 +22,29 @@ export async function streamAffirmation({
     });
 
     if (!resp.ok) {
-      const errorData = await resp.json().catch(() => ({ error: "Something went wrong." }));
-      onError(errorData.error || "Something went wrong. Please try again.");
+      let errorData;
+      try {
+        errorData = await resp.json();
+      } catch {
+        errorData = { error: "Unable to connect to the service." };
+      }
+      
+      // User-friendly error messages based on status codes
+      let userMessage = errorData.error || "Something went wrong. Please try again.";
+      
+      if (resp.status === 400) {
+        userMessage = errorData.error || "Please check your input and try again.";
+      } else if (resp.status === 429) {
+        userMessage = "Too many requests. Please wait a moment and try again.";
+      } else if (resp.status === 502 || resp.status === 503) {
+        userMessage = "Service temporarily unavailable. Please try again in a moment.";
+      } else if (resp.status === 504) {
+        userMessage = "Request timed out. Please try again.";
+      } else if (resp.status >= 500) {
+        userMessage = "Server error. Please try again later.";
+      }
+      
+      onError(userMessage);
       return;
     }
 

@@ -29,66 +29,167 @@ STRICT RULES YOU MUST FOLLOW:
 
 // Generate affirmation endpoint
 app.post('/api/generate-affirmation', async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     const { message } = req.body;
 
-    // Validation
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({ error: 'Please share how you are feeling.' });
+    // Enhanced validation
+    if (!message) {
+      console.warn('[Validation] Missing message field');
+      return res.status(400).json({ 
+        error: 'Please share how you are feeling.',
+        code: 'MISSING_MESSAGE'
+      });
     }
 
-    if (message.length > 1000) {
+    if (typeof message !== 'string') {
+      console.warn('[Validation] Invalid message type:', typeof message);
       return res.status(400).json({ 
-        error: 'Message is too long. Please keep it under 1000 characters.' 
+        error: 'Invalid message format.',
+        code: 'INVALID_TYPE'
+      });
+    }
+
+    const trimmedMessage = message.trim();
+    if (trimmedMessage.length === 0) {
+      console.warn('[Validation] Empty message after trim');
+      return res.status(400).json({ 
+        error: 'Please share how you are feeling.',
+        code: 'EMPTY_MESSAGE'
+      });
+    }
+
+    if (trimmedMessage.length < 3) {
+      console.warn('[Validation] Message too short:', trimmedMessage.length);
+      return res.status(400).json({ 
+        error: 'Please share a bit more about how you are feeling.',
+        code: 'MESSAGE_TOO_SHORT'
+      });
+    }
+
+    if (trimmedMessage.length > 1000) {
+      console.warn('[Validation] Message too long:', trimmedMessage.length);
+      return res.status(400).json({ 
+        error: 'Please keep your message under 1000 characters.',
+        code: 'MESSAGE_TOO_LONG'
       });
     }
 
     const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
     if (!OPENROUTER_API_KEY) {
-      console.error('OPENROUTER_API_KEY is not configured');
-      return res.status(500).json({ error: 'Server configuration error.' });
+      console.error('[Config] OPENROUTER_API_KEY is not configured');
+      return res.status(500).json({ 
+        error: 'Service configuration error. Please contact support.',
+        code: 'CONFIG_ERROR'
+      });
     }
 
-    // Call OpenRouter API
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://kind-affirmations.app',
-        'X-Title': 'Kind Affirmations',
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: message },
-        ],
-        stream: true,
-      }),
-    });
+    console.log('[Request] Starting affirmation generation, message length:', trimmedMessage.length);
+
+    // Call OpenRouter API with timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+    let response;
+    try {
+      console.log('[OpenRouter] Calling API...');
+      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://kind-affirmations.app',
+          'X-Title': 'Kind Affirmations',
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-3.5-sonnet',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: trimmedMessage },
+          ],
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      console.log('[OpenRouter] Response received, status:', response.status);
+    } catch (fetchError) {
+      clearTimeout(timeout);
+      if (fetchError.name === 'AbortError') {
+        console.error('[OpenRouter] Request timeout after 30s');
+        return res.status(504).json({ 
+          error: 'The request took too long. Please try again.',
+          code: 'TIMEOUT'
+        });
+      }
+      console.error('[OpenRouter] Network error:', fetchError.message);
+      return res.status(502).json({ 
+        error: 'Unable to connect to AI service. Please try again.',
+        code: 'NETWORK_ERROR'
+      });
+    }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenRouter API error:', response.status, errorText);
+      let errorText;
+      try {
+        errorText = await response.text();
+      } catch (e) {
+        errorText = 'Unable to read error response';
+      }
+      
+      console.error('[OpenRouter] API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      
+      // Handle specific error codes
+      if (response.status === 401) {
+        console.error('[OpenRouter] Invalid API key');
+        return res.status(502).json({ 
+          error: 'Service authentication failed. Please contact support.',
+          code: 'AUTH_ERROR'
+        });
+      }
       
       if (response.status === 429) {
+        console.warn('[OpenRouter] Rate limited');
         return res.status(429).json({ 
-          error: 'Too many requests. Please wait a moment and try again.' 
+          error: 'Too many requests. Please wait a moment and try again.',
+          code: 'RATE_LIMITED'
         });
       }
+      
       if (response.status === 402) {
-        return res.status(402).json({ 
-          error: 'Service temporarily unavailable. Please try again later.' 
+        console.error('[OpenRouter] Payment required');
+        return res.status(502).json({ 
+          error: 'Service temporarily unavailable. Please try again later.',
+          code: 'SERVICE_UNAVAILABLE'
         });
       }
-      return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+      
+      if (response.status >= 500) {
+        console.error('[OpenRouter] Server error');
+        return res.status(502).json({ 
+          error: 'AI service is experiencing issues. Please try again in a moment.',
+          code: 'UPSTREAM_ERROR'
+        });
+      }
+      
+      return res.status(502).json({ 
+        error: 'Unable to generate affirmation. Please try again.',
+        code: 'API_ERROR'
+      });
     }
 
     // Set up SSE headers for streaming
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+
+    console.log('[Stream] Starting to stream response');
+    let chunkCount = 0;
 
     // Stream the response
     const reader = response.body.getReader();
@@ -97,22 +198,42 @@ app.post('/api/generate-affirmation', async (req, res) => {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log(`[Stream] Completed successfully, chunks: ${chunkCount}, duration: ${Date.now() - startTime}ms`);
+          break;
+        }
         
         const chunk = decoder.decode(value, { stream: true });
         res.write(chunk);
+        chunkCount++;
       }
       res.end();
     } catch (streamError) {
-      console.error('Streaming error:', streamError);
+      console.error('[Stream] Error during streaming:', streamError.message);
+      // Try to send error to client if headers not already sent
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: 'Stream interrupted. Please try again.',
+          code: 'STREAM_ERROR'
+        });
+      }
       res.end();
     }
 
   } catch (error) {
-    console.error('Server error:', error);
-    res.status(500).json({ 
-      error: error.message || 'An unexpected error occurred.' 
+    console.error('[Server] Unexpected error:', {
+      message: error.message,
+      stack: error.stack,
+      duration: Date.now() - startTime
     });
+    
+    // Only send error response if headers haven't been sent yet
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: 'An unexpected error occurred. Please try again.',
+        code: 'INTERNAL_ERROR'
+      });
+    }
   }
 });
 

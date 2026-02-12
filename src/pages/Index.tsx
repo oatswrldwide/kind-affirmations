@@ -20,14 +20,23 @@ const Index = () => {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const text = input.trim();
+    
+    // Enhanced validation
     if (!text) {
       toast.error("Please share how you're feeling.");
       return;
     }
+    
+    if (text.length < 3) {
+      toast.error("Please share a bit more about how you're feeling.");
+      return;
+    }
+    
     if (text.length > 1000) {
       toast.error("Please keep your message under 1000 characters.");
       return;
     }
+    
     setHasGenerated(true);
     await generate(text);
   };
@@ -44,8 +53,13 @@ const Index = () => {
     setHasGenerated(false);
   };
 
+  // Display user-friendly error messages
   if (error) {
-    toast.error(error);
+    const errorMessage = typeof error === 'string' ? error : 'Something went wrong. Please try again.';
+    // Only show toast once per error
+    if (!hasGenerated || affirmation.length === 0) {
+      toast.error(errorMessage, { duration: 5000 });
+    }
   }
 
   return (
@@ -132,18 +146,34 @@ const Index = () => {
               className="text-center"
             >
               <div className="bg-card/80 backdrop-blur-sm border border-border rounded-3xl p-8 md:p-10 shadow-soft mb-6">
-                <Heart className="w-8 h-8 text-accent mx-auto mb-5 opacity-80" />
-                {affirmation ? (
-                  <p className="font-display text-xl md:text-2xl text-foreground leading-relaxed italic">
-                    "{affirmation}"
-                  </p>
-                ) : isLoading ? (
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground font-body">
-                    <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce [animation-delay:0ms]" />
-                    <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce [animation-delay:150ms]" />
-                    <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce [animation-delay:300ms]" />
-                  </div>
-                ) : null}
+                {error && !isLoading ? (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-5">
+                      <span className="text-2xl">⚠️</span>
+                    </div>
+                    <p className="font-body text-lg text-foreground mb-4">
+                      {error}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Please try again or contact support if the issue persists.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Heart className="w-8 h-8 text-accent mx-auto mb-5 opacity-80" />
+                    {affirmation ? (
+                      <p className="font-display text-xl md:text-2xl text-foreground leading-relaxed italic">
+                        "{affirmation}"
+                      </p>
+                    ) : isLoading ? (
+                      <div className="flex items-center justify-center gap-2 text-muted-foreground font-body">
+                        <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce [animation-delay:0ms]" />
+                        <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce [animation-delay:150ms]" />
+                        <div className="w-2 h-2 rounded-full bg-primary/40 animate-bounce [animation-delay:300ms]" />
+                      </div>
+                    ) : null}
+                  </>
+                )}
 
                 {!isLoading && affirmation && (
                   <motion.p
