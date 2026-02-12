@@ -61,7 +61,54 @@ This app uses a simple Node.js/Express backend with [OpenRouter](https://openrou
 
 The backend runs on `http://localhost:3001` and frontend on `http://localhost:5173`.
 
-### Deploying to Railway
+## Deployment
+
+### Backend: Railway
+
+Your backend is deployed at Railway and auto-deploys on every push to main.
+
+**Railway URL**: `https://your-app.up.railway.app`
+
+The backend is already configured and running!
+
+### Frontend: GitHub Pages
+
+Your frontend will be deployed to: `https://oatswrldwide.github.io/kind-affirmations/`
+
+#### Initial Setup (One-Time)
+
+1. **Enable GitHub Pages** in your repository:
+   - Go to repo **Settings** → **Pages**
+   - Source: **GitHub Actions**
+
+2. **Add Railway Backend URL as GitHub Secret**:
+   - Go to repo **Settings** → **Secrets and variables** → **Actions**
+   - Click **New repository secret**
+   - Name: `VITE_API_URL`
+   - Value: `https://your-railway-app.up.railway.app/api/generate-affirmation`
+   - Click **Add secret**
+
+3. **Push to trigger deployment**:
+   ```bash
+   git push origin main
+   ```
+
+4. **Access your site**: `https://oatswrldwide.github.io/kind-affirmations/`
+
+#### Automatic Deployments
+
+Every push to `main` automatically:
+- ✅ Builds the frontend
+- ✅ Deploys to GitHub Pages
+- ✅ Usually takes 1-2 minutes
+
+### Update Backend URL Later
+
+If your Railway URL changes:
+1. Update the `VITE_API_URL` secret in GitHub repo settings
+2. Go to **Actions** tab → **Deploy to GitHub Pages** → **Re-run workflow**
+
+## Local Development
 
 Railway provides automatic deployments from your GitHub repository with zero configuration needed.
 
