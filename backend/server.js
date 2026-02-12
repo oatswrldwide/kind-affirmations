@@ -98,7 +98,7 @@ app.post('/api/generate-affirmation', async (req, res) => {
             parts: [{ text: combinedPrompt }]
           }],
           generationConfig: {
-            maxOutputTokens: 150,
+            maxOutputTokens: 80, // Lower limit for concise 2-3 sentence responses
             temperature: 0.7,
             topP: 0.9,
           }
