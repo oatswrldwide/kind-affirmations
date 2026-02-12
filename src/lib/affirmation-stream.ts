@@ -1,4 +1,5 @@
-const AFFIRMATION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-affirmation`;
+// Use Express backend URL from env, fallback to localhost for development
+const AFFIRMATION_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/generate-affirmation';
 
 export async function streamAffirmation({
   message,
@@ -16,7 +17,6 @@ export async function streamAffirmation({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
       body: JSON.stringify({ message }),
     });

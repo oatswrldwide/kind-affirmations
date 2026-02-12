@@ -41,19 +41,27 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
 
     const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "https://kind-affirmations.app", // Optional: your site URL
+          "X-Title": "Kind Affirmations", // Optional: site name
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "anthropic/claude-3.5-sonnet", // Using Claude 3.5 Sonnet via OpenRouter
+          // Alternative models you can use:
+          // - "openai/gpt-4o" - OpenAI GPT-4o
+          // - "openai/gpt-4-turbo" - OpenAI GPT-4 Turbo
+          // - "anthropic/claude-3-opus" - Claude 3 Opus (more powerful)
+          // - "google/gemini-pro-1.5" - Google Gemini Pro 1.5
+          // See all models: https://openrouter.ai/models
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: message },
