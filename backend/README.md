@@ -79,14 +79,19 @@ Health check endpoint.
 Change the AI model in `server.js`:
 
 ```javascript
-model: 'anthropic/claude-3.5-sonnet',
+model: 'meta-llama/llama-3.2-3b-instruct:free', // Current - Free tier
 ```
 
-Available models:
-- `anthropic/claude-3.5-sonnet` (current)
-- `openai/gpt-4o`
-- `openai/gpt-4-turbo`
-- `anthropic/claude-3-opus`
-- `google/gemini-pro-1.5`
+**Important**: Free models may be rate-limited during high usage. For best performance:
+- **Add $1-5 credits** to your OpenRouter account (https://openrouter.ai/settings/credits)
+- Or use paid models like:
+  - `anthropic/claude-3.5-sonnet` - Best quality
+  - `openai/gpt-4o` - Very good
+  - `google/gemini-pro-1.5` - Good balance
+
+Free models available (may have rate limits):
+- `meta-llama/llama-3.2-3b-instruct:free`
+- `nousresearch/hermes-3-llama-3.1-405b:free`
+- `qwen/qwen-2-7b-instruct:free`
 
 See all models: https://openrouter.ai/models

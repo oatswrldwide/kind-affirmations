@@ -6,7 +6,9 @@ A compassionate web app that generates personalized, AI-powered affirmations to 
 
 - **Frontend**: React + Vite + TypeScript + Tailwind CSS + shadcn/ui
 - **Backend**: Node.js + Express
-- **AI**: OpenRouter (Claude 3.5 Sonnet)
+- **AI**: OpenRouter (Meta Llama 3.2 3B - Free Tier*)
+  
+  *Free tier may have rate limits. Add $1-5 credits for best performance.
 - **Package Manager**: npm (use `npm install`, not `bun install`)
 
 ## Project info

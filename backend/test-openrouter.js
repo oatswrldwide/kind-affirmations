@@ -27,7 +27,7 @@ async function testConnection() {
         'X-Title': 'Kind Affirmations Test',
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: 'meta-llama/llama-3.2-3b-instruct:free', // Free tier
         messages: [
           { role: 'user', content: 'Say "Connection successful!" in 3 words' },
         ],

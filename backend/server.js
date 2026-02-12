@@ -103,7 +103,14 @@ app.post('/api/generate-affirmation', async (req, res) => {
           'X-Title': 'Kind Affirmations',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-3.5-sonnet',
+          model: 'meta-llama/llama-3.2-3b-instruct:free', // Free tier model
+          // Other free options:
+          // - 'nousresearch/hermes-3-llama-3.1-405b:free'
+          // - 'qwen/qwen-2-7b-instruct:free'
+          // Paid alternatives:
+          // - 'anthropic/claude-3.5-sonnet'
+          // - 'openai/gpt-4o'
+          // - 'google/gemini-pro-1.5'
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: trimmedMessage },
