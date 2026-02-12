@@ -2,248 +2,254 @@
 
 A compassionate web app that generates personalized, AI-powered affirmations to help users feel supported and validated.
 
-## Tech Stack
+## 🌐 Live URLs
+
+- **Frontend**: https://oatswrldwide.github.io/kind-affirmations/
+- **Backend API**: https://kind-affirmations-production.up.railway.app
+
+## 🚀 Tech Stack
 
 - **Frontend**: React + Vite + TypeScript + Tailwind CSS + shadcn/ui
 - **Backend**: Node.js + Express
-- **AI**: OpenRouter (Meta Llama 3.2 3B - Free Tier*)
-  
-  *Free tier may have rate limits. Add $1-5 credits for best performance.
-- **Package Manager**: npm (use `npm install`, not `bun install`)
+- **AI**: Google Gemini API (`gemini-2.0-flash`)
+- **Hosting**: GitHub Pages (frontend) + Railway (backend)
+- **Package Manager**: npm
 
-## Project info
+## 📋 Required Environment Variables
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+### Backend (.env)
+```env
+PORT=3001
+GEMINI_API_KEY=your-gemini-api-key-here
+```
 
-## Backend: Node.js + Express
+### Frontend (GitHub Actions Secret)
+```env
+VITE_API_URL=https://kind-affirmations-production.up.railway.app/api/generate-affirmation
+```
 
-This app uses a simple Node.js/Express backend with [OpenRouter](https://openrouter.ai/) to generate personalized affirmations using Claude 3.5 Sonnet.
+## 🏃 How to Run Locally
 
-### Local Development Setup
+### Prerequisites
+- Node.js 18+ installed ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+- A Google Gemini API key (free tier available)
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   cd backend && npm install && cd ..
-   ```
+### Step 1: Clone and Install
+```bash
+# Clone the repository
+git clone https://github.com/oatswrldwide/kind-affirmations.git
+cd kind-affirmations
 
-2. **Get an OpenRouter API key**
-   - Sign up at [openrouter.ai](https://openrouter.ai/)
-   - Create an API key from your dashboard
+# Install frontend dependencies
+npm install
 
-3. **Configure backend** (choose one option):
+# Install backend dependencies
+cd backend
+npm install
+cd ..
+```
 
-   **Option A - GitHub Codespaces Secret (Recommended for security):**
-   - Go to your repo **Settings** → **Secrets and variables** → **Codespaces**
-   - Add secret: `OPENROUTER_API_KEY` with your key
-   - Rebuild/restart your Codespace
-   
-   **Option B - Local .env file:**
-   ```bash
-   cd backend
-   cp .env.example .env
-   # Edit .env and add your OpenRouter API key
-   ```
+### Step 2: Get a Gemini API Key (Free)
+1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the key (starts with `AIza...`)
 
-4. **Start both servers**
-   
-   Option 1 - Run both together:
-   ```bash
-   npm run dev:all
-   ```
-   
-   Option 2 - Run separately in different terminals:
-   ```bash
-   # Terminal 1 - Backend
-   npm run dev:backend
-   
-   # Terminal 2 - Frontend
-   npm run dev
-   ```
+### Step 3: Configure Backend
+```bash
+# Navigate to backend folder
+cd backend
 
-The backend runs on `http://localhost:3001` and frontend on `http://localhost:5173`.
+# Create .env file
+cat > .env << EOF
+PORT=3001
+GEMINI_API_KEY=your-actual-gemini-api-key-here
+EOF
+```
 
-## Deployment
+**Important**: Replace `your-actual-gemini-api-key-here` with your actual API key!
 
-### Backend: Railway
+### Step 4: Start the Servers
 
-Your backend is deployed at Railway and auto-deploys on every push to main.
+**Option 1 - Run both together:**
+```bash
+npm run dev:all
+```
 
-**Railway URL**: `https://your-app.up.railway.app`
+**Option 2 - Run separately in different terminals:**
+```bash
+# Terminal 1 - Backend
+cd backend
+npm start
 
-The backend is already configured and running!
+# Terminal 2 - Frontend
+npm run dev
+```
+
+### Step 5: Open the App
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3001
+
+### Test the Backend
+```bash
+curl -X POST http://localhost:3001/api/generate-affirmation \
+  -H "Content-Type: application/json" \
+  -d '{"message":"I am feeling happy today"}'
+```
+
+## 🚢 How to Deploy
 
 ### Frontend: GitHub Pages
 
-Your frontend will be deployed to: `https://oatswrldwide.github.io/kind-affirmations/`
-
 #### Initial Setup (One-Time)
 
-1. **Enable GitHub Pages** in your repository:
-   - Go to repo **Settings** → **Pages**
-   - Source: **GitHub Actions**
+1. **Enable GitHub Pages**:
+   - Go to repository **Settings** → **Pages**
+   - Source: Select **"GitHub Actions"**
 
-2. **Add Railway Backend URL as GitHub Secret**:
-   - Go to repo **Settings** → **Secrets and variables** → **Actions**
-   - Click **New repository secret**
+2. **Add Backend URL as Secret**:
+   - Go to **Settings** → **Secrets and variables** → **Actions**
+   - Click **"New repository secret"**
    - Name: `VITE_API_URL`
-   - Value: `https://your-railway-app.up.railway.app/api/generate-affirmation`
-   - Click **Add secret**
+   - Value: `https://kind-affirmations-production.up.railway.app/api/generate-affirmation`
+   - Click **"Add secret"**
 
-3. **Push to trigger deployment**:
+3. **Deploy**:
    ```bash
    git push origin main
    ```
 
-4. **Access your site**: `https://oatswrldwide.github.io/kind-affirmations/`
+#### Automatic Deployments
+Every push to `main` automatically builds and deploys to GitHub Pages (takes ~2 minutes).
+
+**Workflow file**: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+
+### Backend: Railway
+
+#### Initial Setup
+
+1. **Create Railway Account**:
+   - Go to [railway.app](https://railway.app/)
+   - Sign in with GitHub
+
+2. **Create New Project**:
+   - Click **"New Project"**
+   - Select **"Deploy from GitHub repo"**
+   - Choose `kind-affirmations` repository
+   - Railway auto-detects the Node.js backend
+
+3. **Add Environment Variable**:
+   - In Railway project dashboard, go to **Variables** tab
+   - Click **"+ New Variable"**
+   - Name: `GEMINI_API_KEY`
+   - Value: Your Gemini API key
+   - Click **"Add"**
+
+4. **Get Your Backend URL**:
+   - Railway provides a URL like: `https://your-app.up.railway.app`
+   - Use this in your frontend's `VITE_API_URL` secret
 
 #### Automatic Deployments
+Every push to `main` automatically deploys to Railway (takes ~2 minutes).
 
-Every push to `main` automatically:
-- ✅ Builds the frontend
-- ✅ Deploys to GitHub Pages
-- ✅ Usually takes 1-2 minutes
+**Configuration files**: 
+- [`railway.toml`](railway.toml)
+- [`nixpacks.toml`](nixpacks.toml)
 
-### Update Backend URL Later
+## 🛠️ Development
 
-If your Railway URL changes:
-1. Update the `VITE_API_URL` secret in GitHub repo settings
-2. Go to **Actions** tab → **Deploy to GitHub Pages** → **Re-run workflow**
-
-## Local Development
-
-Railway provides automatic deployments from your GitHub repository with zero configuration needed.
-
-#### Step 1: Create Railway Project
-
-1. Go to [railway.app](https://railway.app/) and sign in with GitHub
-2. Click **"New Project"**
-3. Select **"Deploy from GitHub repo"**
-4. Choose your `kind-affirmations` repository
-5. Railway will automatically detect the Node.js backend
-
-#### Step 2: Set Environment Variables
-
-In your Railway project dashboard:
-
-1. Go to **Variables** tab
-2. Add the following variable:
-   ```
-   OPENROUTER_API_KEY=your_openrouter_api_key_here
-   ```
-3. Railway will automatically restart your app
-
-#### Step 3: Get Your Backend URL
-
-1. Railway will provide a public URL like `https://your-app.up.railway.app`
-2. Copy this URL
-
-#### Step 4: Configure Frontend
-
-Update your frontend's `.env` file:
-
-```env
-VITE_API_URL=https://your-app.up.railway.app/api/generate-affirmation
+### Project Structure
+```
+kind-affirmations/
+├── backend/              # Express API server
+│   ├── server.js        # Main server file with Gemini integration
+│   ├── .env             # Environment variables (local only)
+│   └── package.json     # Backend dependencies
+├── src/                 # React frontend
+│   ├── pages/           # Page components
+│   ├── components/      # Reusable UI components
+│   ├── lib/             # Utilities and services
+│   └── hooks/           # Custom React hooks
+├── public/              # Static assets
+└── package.json         # Frontend dependencies
 ```
 
-#### Step 5: Deploy Frontend
+### Key Features
+- ✅ AI-powered personalized affirmations
+- ✅ Streaming responses for real-time feedback
+- ✅ Input validation (5-500 characters)
+- ✅ Comprehensive error handling
+- ✅ Rate limiting protection (15 requests/min)
+- ✅ Responsive design with Tailwind CSS
+- ✅ No raw errors or stack traces shown to users
 
-Deploy your frontend to:
-- **Vercel**: `npx vercel --prod`
-- **Netlify**: `npx netlify deploy --prod`
-- **Railway**: Create a separate service for the frontend
+### Available Scripts
 
-### Auto-Deploy Setup
-
-Railway automatically deploys when you push to your GitHub repository:
-
+**Frontend**:
 ```bash
-git add .
-git commit -m "Update backend"
-git push origin main
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
 ```
 
-Railway will detect changes and redeploy automatically! 🚀
+**Backend**:
+```bash
+npm run dev:backend  # Start backend with nodemon (auto-reload)
+npm start            # Start backend (production)
+```
 
-### Changing the AI Model
+**Both**:
+```bash
+npm run dev:all      # Run frontend + backend concurrently
+```
 
-Edit [`backend/server.js`](backend/server.js) and change the model:
+## 🔧 Changing the AI Model
+
+Edit [`backend/server.js`](backend/server.js) line 88:
 
 ```javascript
-model: 'anthropic/claude-3.5-sonnet',  // Current model
-// Alternatives:
-// - "openai/gpt-4o"
-// - "openai/gpt-4-turbo"  
-// - "anthropic/claude-3-opus"
-// - "google/gemini-pro-1.5"
+const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
+
+// Other available Gemini models:
+// - gemini-2.5-flash (has extended thinking, uses more tokens)
+// - gemini-2.0-flash (current - fast and efficient)
+// - gemini-2.5-flash-lite (lighter weight)
 ```
 
-See all available models at [openrouter.ai/models](https://openrouter.ai/models).
+See all models: https://ai.google.dev/gemini-api/docs/models
 
-## How can I edit this code?
+## 📊 API Quotas (Free Tier)
 
-There are several ways of editing your application.
+- **Requests**: 15 per minute, 1,500 per day
+- **Tokens**: 1 million per day
+- **Cost**: Free
 
-**Use Lovable**
+Monitor usage: https://aistudio.google.com/app/usage
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🐛 Troubleshooting
 
-Changes made via Lovable will be committed automatically to this repo.
+### Backend won't start
+```bash
+# Check if API key is set
+cd backend
+node test-gemini.js
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Expected output: "🎉 Gemini API is working correctly!"
 ```
 
-**Edit a file directly in GitHub**
+### Frontend can't connect to backend
+1. Check backend is running: `curl http://localhost:3001/health`
+2. Check `VITE_API_URL` in GitHub Actions secrets
+3. Redeploy frontend: `git commit --allow-empty -m "Redeploy" && git push`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Rate limit errors
+Wait 60 seconds between requests. Free tier allows 15 requests/minute.
 
-**Use GitHub Codespaces**
+## 📝 Project Info
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+**Created with**: [Lovable](https://lovable.dev)
 
-## What technologies are used for this project?
+## 📄 License
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+This project is open source and available under the MIT License.
+```
