@@ -12,20 +12,8 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// System prompt for AI
-const SYSTEM_PROMPT = `You are a warm, empathetic companion who generates personalized therapeutic affirmations. Your role is to validate the user's feelings and offer gentle, uplifting affirmations tailored to what they share.
-
-STRICT RULES YOU MUST FOLLOW:
-- NEVER provide medical advice, legal advice, or diagnose any condition.
-- NEVER act as a therapist, counselor, or medical professional.
-- NEVER provide instructions or guidance related to self-harm, suicide, or harming others.
-- If a user expresses thoughts of self-harm, suicide, or harming others, respond ONLY with: "I hear you, and I'm glad you're reaching out. You deserve support from someone who can truly help. Please contact the 988 Suicide & Crisis Lifeline (call or text 988) or reach out to a trusted person in your life. You matter, and help is available."
-- Keep responses to 2-4 sentences maximum.
-- Be warm, specific, and personalized to what the user shared.
-- Focus on validation, encouragement, and gentle reframing.
-- Use "you" language to make affirmations feel personal.
-- Do not use clinical or diagnostic language.
-- Do not ask follow-up questions. Just provide the affirmation.`;
+// System prompt for AI - Kept concise for free tier efficiency
+const SYSTEM_PROMPT = `You are a warm, empathetic companion. Generate a brief, personalized affirmation (2-3 sentences max) based on the user's feelings. Be warm and validating. Never provide medical/legal advice or act as a therapist. If user mentions self-harm, respond: "Please contact 988 Suicide & Crisis Lifeline for support."`;
 
 // Generate affirmation endpoint
 app.post('/api/generate-affirmation', async (req, res) => {
@@ -34,7 +22,7 @@ app.post('/api/generate-affirmation', async (req, res) => {
   try {
     const { message } = req.body;
 
-    // Enhanced validation
+    // Enhanced validation - more restrictive for free tier
     if (!message) {
       console.warn('[Validation] Missing message field');
       return res.status(400).json({ 
@@ -60,18 +48,19 @@ app.post('/api/generate-affirmation', async (req, res) => {
       });
     }
 
-    if (trimmedMessage.length < 3) {
+    if (trimmedMessage.length < 5) {
       console.warn('[Validation] Message too short:', trimmedMessage.length);
       return res.status(400).json({ 
-        error: 'Please share a bit more about how you are feeling.',
+        error: 'Please share a bit more (at least 5 characters).',
         code: 'MESSAGE_TOO_SHORT'
       });
     }
 
-    if (trimmedMessage.length > 1000) {
+    // Stricter limit for free tier - reduces token usage
+    if (trimmedMessage.length > 500) {
       console.warn('[Validation] Message too long:', trimmedMessage.length);
       return res.status(400).json({ 
-        error: 'Please keep your message under 1000 characters.',
+        error: 'Please keep your message under 500 characters for best results.',
         code: 'MESSAGE_TOO_LONG'
       });
     }
@@ -116,18 +105,15 @@ app.post('/api/generate-affirmation', async (req, res) => {
             { role: 'user', content: trimmedMessage },
           ],
           stream: true,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      console.log('[OpenRouter] Response received, status:', response.status);
-    } catch (fetchError) {
-      clearTimeout(timeout);
-      if (fetchError.name === 'AbortError') {
-        console.error('[OpenRouter] Request timeout after 30s');
-        return res.status(504).json({ 
-          error: 'The request took too long. Please try again.',
-          code: 'TIMEOUT'
+        })messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: trimmedMessage },
+          ],
+          stream: true,
+          // Optimize for free tier - minimal token usage
+          max_tokens: 150, // Limit response length
+          temperature: 0.7, // Balanced creativity
+          top_p: 0.9UT'
         });
       }
       console.error('[OpenRouter] Network error:', fetchError.message);

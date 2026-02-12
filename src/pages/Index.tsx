@@ -21,19 +21,19 @@ const Index = () => {
     e?.preventDefault();
     const text = input.trim();
     
-    // Enhanced validation
+    // Enhanced validation - aligned with free tier limits
     if (!text) {
       toast.error("Please share how you're feeling.");
       return;
     }
     
-    if (text.length < 3) {
-      toast.error("Please share a bit more about how you're feeling.");
+    if (text.length < 5) {
+      toast.error("Please share a bit more (at least 5 characters).");
       return;
     }
     
-    if (text.length > 1000) {
-      toast.error("Please keep your message under 1000 characters.");
+    if (text.length > 500) {
+      toast.error("Please keep your message under 500 characters for best results.");
       return;
     }
     
@@ -110,7 +110,7 @@ const Index = () => {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="How are you feeling right now?"
-                    maxLength={1000}
+                    maxLength={500}
                     rows={3}
                     className="w-full rounded-2xl border border-border bg-card/80 backdrop-blur-sm px-5 py-4 pr-14 font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 resize-none shadow-soft transition-all"
                   />
