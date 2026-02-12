@@ -86,7 +86,7 @@ app.post('/api/generate-affirmation', async (req, res) => {
     let response;
     try {
       console.log('[Gemini] Calling API...');
-      const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
+      const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
       
       response = await fetch(apiUrl, {
         method: 'POST',
@@ -98,7 +98,7 @@ app.post('/api/generate-affirmation', async (req, res) => {
             parts: [{ text: combinedPrompt }]
           }],
           generationConfig: {
-            maxOutputTokens: 80, // Lower limit for concise 2-3 sentence responses
+            maxOutputTokens: 100, // Enough for 2-3 sentences without thinking overhead
             temperature: 0.7,
             topP: 0.9,
           }
