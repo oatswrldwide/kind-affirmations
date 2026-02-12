@@ -86,7 +86,7 @@ app.post('/api/generate-affirmation', async (req, res) => {
     let response;
     try {
       console.log('[Gemini] Calling API...');
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`;
+      const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
       
       response = await fetch(apiUrl, {
         method: 'POST',
