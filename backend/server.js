@@ -93,19 +93,7 @@ app.post('/api/generate-affirmation', async (req, res) => {
         },
         body: JSON.stringify({
           model: 'meta-llama/llama-3.2-3b-instruct:free', // Free tier model
-          // Other free options:
-          // - 'nousresearch/hermes-3-llama-3.1-405b:free'
-          // - 'qwen/qwen-2-7b-instruct:free'
-          // Paid alternatives:
-          // - 'anthropic/claude-3.5-sonnet'
-          // - 'openai/gpt-4o'
-          // - 'google/gemini-pro-1.5'
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: trimmedMessage },
-          ],
-          stream: true,
-        })messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: trimmedMessage },
           ],
@@ -113,7 +101,19 @@ app.post('/api/generate-affirmation', async (req, res) => {
           // Optimize for free tier - minimal token usage
           max_tokens: 150, // Limit response length
           temperature: 0.7, // Balanced creativity
-          top_p: 0.9UT'
+          top_p: 0.9,
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeout);
+      
+      // Handle timeout
+      if (fetchError.name === 'AbortError') {
+        console.error('[OpenRouter] Request timeout after 30s');
+        return res.status(504).json({ 
+          error: 'Request timed out. Please try again.',
+          code: 'TIMEOUT'
         });
       }
       console.error('[OpenRouter] Network error:', fetchError.message);
