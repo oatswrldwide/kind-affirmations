@@ -192,29 +192,33 @@ app.post('/api/generate-affirmation', async (req, res) => {
         }
         
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
+        // Split on both \r\n and \n for compatibility
+        const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() || '';
 
         for (const line of lines) {
           if (line.trim() === '') continue;
           
           try {
-            const jsonLine = line.replace(/^data: /, '').trim();
+            // Remove "data: " prefix if present
+            const jsonLine = line.replace(/^data:\s*/, '').trim();
             if (!jsonLine || jsonLine === '[DONE]') continue;
             
             const parsed = JSON.parse(jsonLine);
             
             // Extract text from Gemini response format
             if (parsed.candidates && parsed.candidates[0]?.content?.parts) {
-              const text = parsed.candidates[0].content.parts[0]?.text || '';
-              if (text) {
-                // Format as OpenAI-style SSE for frontend compatibility
-                res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-                chunkCount++;
+              for (const part of parsed.candidates[0].content.parts) {
+                const text = part.text || '';
+                if (text) {
+                  // Format as OpenAI-style SSE for frontend compatibility
+                  res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                  chunkCount++;
+                }
               }
             }
           } catch (parseError) {
-            console.warn('[Stream] Failed to parse chunk:', parseError.message);
+            console.warn('[Stream] Failed to parse chunk:', line.substring(0, 100), parseError.message);
           }
         }
       }
